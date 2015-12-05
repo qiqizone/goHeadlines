@@ -56,7 +56,8 @@
         <RelativeLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true">
+            android:layout_centerInParent="true"
+            android:id="@+id/relativeLayout">
             <!-- 拍照按钮背景-->
             <com.cqyw.goheadlines.widget.circleview.CircleImageView
                 android:layout_width="@dimen/camera_bottom_bar_shutter_bg_size"
@@ -75,6 +76,16 @@
                 app:cb_color="#c2c2c2"
                 app:cb_pressedRingWidth="4dp"/>
         </RelativeLayout>
+
+        <Button
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="本地图片"
+            android:id="@+id/local_picture"
+            android:layout_alignBottom="@+id/relativeLayout"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true" />
     </RelativeLayout>
     <RelativeLayout
         android:id="@+id/cover_icn_rl"

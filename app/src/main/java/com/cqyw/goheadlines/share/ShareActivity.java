@@ -183,7 +183,12 @@ public class ShareActivity extends MonitoredActivity implements RadioButton.OnCh
                 final String filename = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date())+".jpg";
                 Bitmap wmBitmap = BitmapFactory.decodeFile(wmPath.getPath());
                 try {
-                    Toast.makeText(this,"保存成功:"+fileUtils.savaBitmap(filename, wmBitmap),Toast.LENGTH_LONG).show();
+                    if(wmBitmap == null){
+                        Toast.makeText(this,"保存失败",Toast.LENGTH_LONG).show();
+                        return;
+                    }else{
+                        Toast.makeText(this,"保存成功:"+fileUtils.savaBitmap(filename, wmBitmap),Toast.LENGTH_LONG).show();
+                    }
                     wmBitmap.recycle();
                     System.gc();
                 } catch (IOException e) {

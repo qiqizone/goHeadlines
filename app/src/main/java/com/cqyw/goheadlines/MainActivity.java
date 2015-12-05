@@ -1,11 +1,13 @@
 package com.cqyw.goheadlines;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.view.KeyEvent;
@@ -20,6 +22,7 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.ScaleAnimation;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -41,6 +44,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import android.database.Cursor;
+import android.provider.MediaStore;
+
+import me.iwf.photopicker.PhotoPickerActivity;
+import testimage.image.ImageHandleUtils;
 
 /**
  * Created by Kairong on 2015/9/20.
@@ -54,9 +62,14 @@ public class MainActivity extends MonitoredActivity implements SurfaceHolder.Cal
     private ImageView flash_light;               // 闪光灯
     private ImageView cover_view;                // 封面图片
     private ImageView expand_button;             // 扩展按钮
+    private Button local_picture;             // 扩展按钮
     /*显示封面选项菜单*/
     private boolean ifCoverMenuShown = true;
     private String[] stat_cover_items;
+    private static int RESULT_LOAD_IMAGE = 1;
+    private static final String IMAGE_TYPE = "image/*";
+    private static final int REQUEST_CODE = 1;
+    private List<String> photoPaths = new ArrayList<>();
 //
 //    /*屏幕方向检测器，用于监测屏幕的旋转*/
 //    private ScreenOrnDetector screenOrnDetector;
@@ -112,10 +125,12 @@ public class MainActivity extends MonitoredActivity implements SurfaceHolder.Cal
         cover_view = (ImageView)findViewById(R.id.cover);
         expand_button = (ImageView)findViewById(R.id.expand_button);
         flash_light = (ImageView)findViewById(R.id.flash_light);
+        local_picture = (Button)findViewById(R.id.local_picture);
 
         // 设置监听
         expand_button.setOnClickListener(this);
         flash_light.setOnClickListener(this);
+        local_picture.setOnClickListener(this);
         findViewById(R.id.shutter).setOnClickListener(this);
         findViewById(R.id.switch_camera).setOnClickListener(this);
 
@@ -323,6 +338,12 @@ public class MainActivity extends MonitoredActivity implements SurfaceHolder.Cal
                 // 显示封面选项
                 showCoverList();
                 break;
+            case R.id.local_picture:
+                Intent intent = ImageHandleUtils.pickSingleImage(this, false);
+                this.startActivityForResult(intent, REQUEST_CODE);
+
+                break;
+
         }
     }
 
@@ -425,14 +446,21 @@ public class MainActivity extends MonitoredActivity implements SurfaceHolder.Cal
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         // 如果只有一个摄像头，则默认打开后置摄像头，否则打开前置摄像头
-        if(cameraHelper.cameraCount == 1) {
-            cameraHelper.open();
-        } else if(cameraHelper.cameraCount >=2){
-            int defCamPos = AppSharedPreference.getCameraPos();
-            if (defCamPos == Camera.CameraInfo.CAMERA_FACING_FRONT)
-                flash_light.setVisibility(View.GONE);
-            cameraHelper.open(defCamPos);
+        boolean sdCardExist = Environment.getExternalStorageState()
+                .equals(android.os.Environment.MEDIA_MOUNTED); //判断sd卡是否存在
+        if(sdCardExist){
+            if(cameraHelper.cameraCount == 1) {
+                cameraHelper.open();
+            } else if(cameraHelper.cameraCount >=2){
+                int defCamPos = AppSharedPreference.getCameraPos();
+                if (defCamPos == Camera.CameraInfo.CAMERA_FACING_FRONT)
+                    flash_light.setVisibility(View.GONE);
+                cameraHelper.open(defCamPos);
+            }
+        }else{
+            Toast.makeText(this, "SD卡不可用", Toast.LENGTH_SHORT).show();
         }
+
 //
 //        screenOrnDetector = new ScreenOrnDetector(this);
 //
@@ -513,10 +541,28 @@ public class MainActivity extends MonitoredActivity implements SurfaceHolder.Cal
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
         if(resultCode!=RESULT_OK) {
             Toast.makeText(getApplicationContext(),"没有选择任何图片!",Toast.LENGTH_SHORT).show();
+        }else if (resultCode == RESULT_OK && requestCode == REQUEST_CODE) {
+            if (data != null) {
+                photoPaths.clear();
+                photoPaths.addAll(data.getStringArrayListExtra(PhotoPickerActivity.KEY_SELECTED_PHOTOS));
+            }
+            if(photoPaths !=  null && photoPaths.size() > 0) {
+                Intent intent1 = new Intent(this,CropImageActivity.class);
+                intent1.putExtra(Constant.IMAGE_URI,Uri.fromFile(new File(photoPaths.get(0))));
+                intent1.putExtra(Constant.COVER_INDEX, this.curCoverIndex);
+                this.startActivity(intent1);
+            }else{
+                Toast.makeText(this,"没有选择图片!",Toast.LENGTH_SHORT).show();
+                return;
+            }
         }
+
     }
+
 
     @Override
     protected void onPause() {
